@@ -66,13 +66,19 @@ async fn fallback_interactive_mode(mut client: OpenRouterClient) -> Result<()> {
     // Main REPL loop
     let mut conversation_history = Vec::new();
 
+    // Show instructions
+    println!("Type a message and press Enter to send.");
+    println!("To enter a command, type / followed by the command (e.g., /help)");
+    println!("Note: Shift+Enter for multiline input doesn't work in this mode.\n");
+
     loop {
         let prompt = format!("{} ", "You:".green().bold());
         let readline = rl.readline(&prompt);
 
         match readline {
             Ok(line) => {
-                if line.is_empty() {
+                let trimmed_line = line.trim();
+                if trimmed_line.is_empty() {
                     continue;
                 }
 
@@ -80,8 +86,9 @@ async fn fallback_interactive_mode(mut client: OpenRouterClient) -> Result<()> {
                 rl.add_history_entry(line.clone())?;
 
                 // Process commands
-                if line.starts_with('/') {
-                    match line.trim() {
+                if trimmed_line.starts_with('/') {
+                    let command = trimmed_line.split_whitespace().next().unwrap_or(trimmed_line);
+                    match command {
                         "/help" => {
                             println!("\n{}", "Available commands:".yellow());
                             println!("  {} - Show this help", "/help".blue());
@@ -136,9 +143,9 @@ async fn fallback_interactive_mode(mut client: OpenRouterClient) -> Result<()> {
                             println!();
                             continue;
                         }
-                        s if s.starts_with("/model") => {
+                        "/model" => {
                             // Change model or show current model
-                            let parts: Vec<&str> = s.split_whitespace().collect();
+                            let parts: Vec<&str> = trimmed_line.split_whitespace().collect();
                             if parts.len() >= 2 {
                                 // Change the model
                                 let new_model = parts[1].to_string();
@@ -181,14 +188,14 @@ async fn fallback_interactive_mode(mut client: OpenRouterClient) -> Result<()> {
 
                 // Send message to API
                 println!("\n{} ", "Claude:".purple().bold());
-                
+
                 // Use streaming or non-streaming based on config
                 if client.config.use_streaming {
                     // Use the streaming API
                     use futures::StreamExt;
                     use std::io::{self, Write};
 
-                    match client.send_message_streaming(&line).await {
+                    match client.send_message_streaming(trimmed_line).await {
                         Ok(mut stream) => {
                             let mut full_response = String::new();
 
@@ -218,7 +225,7 @@ async fn fallback_interactive_mode(mut client: OpenRouterClient) -> Result<()> {
                     }
                 } else {
                     // Standard non-streaming mode
-                    match client.send_message(&line).await {
+                    match client.send_message(trimmed_line).await {
                         Ok(response) => {
                             println!("{}\n", response);
                             conversation_history.push(response);

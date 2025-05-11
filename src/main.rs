@@ -13,6 +13,7 @@ use api::OpenRouterClient;
 use utils::mask_api_key;
 use cli::cli::{Cli, Commands};
 use cli::interactive;
+use cli::tui;
 // Will be used later
 // use history::storage::ConversationStorage;
 use config::Config;
@@ -200,8 +201,8 @@ async fn main() {
             }
         },
         None => {
-            // No subcommand was used, run interactive mode
-            info!("Starting interactive mode");
+            // No subcommand was used, run TUI or interactive mode
+            info!("Starting interactive mode with TUI");
 
             // Check if config file exists, suggest creating one if not
             if let Some(path) = Config::get_config_path() {
@@ -212,10 +213,34 @@ async fn main() {
                 }
             }
 
-            if let Err(err) = interactive::start_interactive_mode(client).await {
-                error!("Interactive mode error: {}", err);
-                eprintln!("Error: {}", err);
-                std::process::exit(1);
+            // Try to use the TUI mode first, fall back to simple interactive mode if it fails
+            match tui::start_tui_mode(client.clone()).await {
+                Ok(_) => {
+                    info!("TUI mode exited successfully");
+                }
+                Err(err) => {
+                    // Check the error type/message to provide better feedback
+                    let err_message = format!("{}", err);
+
+                    // If it's a terminal compatibility error, show a more user-friendly message
+                    if err_message.contains("Terminal environment not compatible") ||
+                       err_message.contains("Device not configured") ||
+                       err_message.contains("Unsupported") {
+                        info!("Terminal doesn't support TUI features");
+                        println!("Your terminal doesn't support advanced UI features.");
+                    } else {
+                        // Generic error for other issues
+                        error!("Failed to start TUI mode: {}", err);
+                    }
+
+                    println!("Falling back to basic interactive mode...");
+
+                    if let Err(err) = interactive::start_interactive_mode(client).await {
+                        error!("Interactive mode error: {}", err);
+                        eprintln!("Error: {}", err);
+                        std::process::exit(1);
+                    }
+                }
             }
         }
     }

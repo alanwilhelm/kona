@@ -29,9 +29,14 @@ tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 
 # Interactive mode
-rustyline = "12.0"
+rustyline = "12.0"  # Will be phased out
 colored = "2.1"
 dirs = "5.0"
+
+# Terminal UI
+ratatui = "0.29.0"  # Latest version
+crossterm = "0.27.0"
+unicode-width = "0.1.11"
 
 # Configuration
 toml = "0.8.6"
