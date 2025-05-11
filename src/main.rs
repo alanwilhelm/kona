@@ -11,14 +11,20 @@ mod history;
 
 use api::OpenRouterClient;
 use utils::mask_api_key;
+use cli::basic;
 use cli::cli::{Cli, Commands};
-use cli::interactive;
+use cli::mac;
+// use cli::interactive; // Old implementation
+// use cli::simple; // Had issues with text_io
 use cli::tui;
 // Will be used later
 // use history::storage::ConversationStorage;
 use config::Config;
 
 fn setup_logging(verbosity: u8) {
+    // Force debug level during development
+    let verbosity = std::cmp::max(verbosity, 3);
+
     let level = match verbosity {
         0 => Level::ERROR,
         1 => Level::WARN,
@@ -233,9 +239,9 @@ async fn main() {
                         error!("Failed to start TUI mode: {}", err);
                     }
 
-                    println!("Falling back to basic interactive mode...");
+                    println!("Detected macOS, using Mac-friendly mode...");
 
-                    if let Err(err) = interactive::start_interactive_mode(client).await {
+                    if let Err(err) = mac::start_mac_mode(client).await {
                         error!("Interactive mode error: {}", err);
                         eprintln!("Error: {}", err);
                         std::process::exit(1);
