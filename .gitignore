@@ -1,0 +1,14 @@
+/target
+**/*.rs.bk
+Cargo.lock
+.env
+.env.*
+!.env.example
+.cargo
+.idea/
+.vscode/
+*.swp
+*.swo
+**/.DS_Store
+**/.claude/
+**/.claude/settings.local.json
